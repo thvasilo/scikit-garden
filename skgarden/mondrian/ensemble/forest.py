@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import sparse
+from scipy.stats import norm
 from sklearn.base import ClassifierMixin
 from sklearn.ensemble.forest import ForestClassifier
 from sklearn.ensemble.forest import ForestRegressor
@@ -256,6 +257,18 @@ class MondrianForestRegressor(ForestRegressor, BaseMondrian):
         std[std <= 0.0] = 0.0
         std **= 0.5
         return ensemble_mean, std
+
+    def predict_quantile(self, X, quantile):
+        assert 0 < quantile <= 1.0, "Quantile should be a float in the interval (0, 1.0]"
+        ensemble_mean, std = self.predict(X, return_std=True)
+
+        return norm.cdf(quantile, loc=ensemble_mean, scale=std)
+
+    def predict_interval(self, X, confidence):
+        assert np.isscalar(confidence), "Confidence shoul be a scalar"
+        ensemble_mean, std = self.predict(X, return_std=True)
+
+        return norm.interval(confidence, loc=ensemble_mean, scale=std)
 
     def partial_fit(self, X, y):
         """
