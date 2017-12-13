@@ -258,17 +258,21 @@ class MondrianForestRegressor(ForestRegressor, BaseMondrian):
         std **= 0.5
         return ensemble_mean, std
 
+    # tvas: Maybe better to add these as args to predict? (QRF does this for quantile)
     def predict_quantile(self, X, quantile):
         assert 0 < quantile <= 1.0, "Quantile should be a float in the interval (0, 1.0]"
         ensemble_mean, std = self.predict(X, return_std=True)
 
-        return norm.cdf(quantile, loc=ensemble_mean, scale=std)
+        return norm.ppf(quantile, loc=ensemble_mean, scale=std)
 
     def predict_interval(self, X, confidence):
-        assert np.isscalar(confidence), "Confidence shoul be a scalar"
+        assert np.isscalar(confidence), "Confidence should be a scalar"
         ensemble_mean, std = self.predict(X, return_std=True)
+        std += 1e-6 # Avoid NaNs. TODO: Better solution? How are std=0 produced??
+        interval_tuple = norm.interval(confidence, loc=ensemble_mean, scale=std)
+        intervals = np.concatenate((interval_tuple[0][:, np.newaxis], interval_tuple[1][:, np.newaxis]), axis=1)
 
-        return norm.interval(confidence, loc=ensemble_mean, scale=std)
+        return intervals
 
     def partial_fit(self, X, y):
         """

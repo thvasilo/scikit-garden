@@ -277,3 +277,50 @@ def test_tree_identical_labels():
         for est in ensemble.estimators_:
             leaf_ids = est.tree_.children_left == -1
             assert_true(np.any(est.tree_.n_node_samples[leaf_ids] > 2))
+
+
+def test_probability_values():
+    from skgarden import MondrianForestClassifier
+    from sklearn.datasets import load_iris
+    import numpy as np
+
+    iris = load_iris()
+
+    mfc = MondrianForestClassifier().fit(iris['data'], iris['target'])
+    assert_false(np.max(mfc.predict_proba(iris['data'])) > 1.0,
+                 "Probabilities larger than 1.0 in the predictions!")
+
+    mfc_boot = MondrianForestClassifier(bootstrap=True).fit(iris['data'], iris['target'])
+    assert_false(np.max(mfc_boot.predict_proba(iris['data'])) > 1.0,
+                 "Probabilities larger than 1.0 in the predictions!")
+
+
+def test_interval_prediction():
+    pass
+
+
+def test_quantile_toy_data():
+    rng = np.random.RandomState(1)
+    x1 = rng.randn(1, 10)
+    X1 = np.tile(x1, (10000, 1))
+    x2 = 20.0 * rng.randn(1, 10)
+    X2 = np.tile(x2, (10000, 1))
+    X = np.concatenate((X1, X2))
+
+    y1 = rng.randn(10000)
+    y2 = 5.0 + rng.randn(10000)
+    y = np.concatenate((y1, y2))
+
+    est = MondrianForestRegressor(random_state=1)
+
+    # est.set_params(max_depth=1)
+    est.fit(X, y)
+    for quantile in range(10, 90, 10):
+        tree_quantile = 0.01 * quantile
+
+        assert_array_almost_equal(
+            est.predict_quantile(x1, quantile=tree_quantile),
+            [np.percentile(y1, quantile)], 2)
+        assert_array_almost_equal(
+            est.predict_quantile(x2, quantile=tree_quantile),
+            [np.percentile(y2, quantile)], 2)
