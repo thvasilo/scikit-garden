@@ -109,7 +109,7 @@ def test_forest_toy_data():
     X1 = np.tile(x1, (10000, 1))
     x2 = 20.0 * rng.randn(1, 10)
     X2 = np.tile(x2, (10000, 1))
-    X = np.vstack((X1, X2))
+    X = np.concatenate((X1, X2))
 
     y1 = rng.randn(10000)
     y2 = 5.0 + rng.randn(10000)
